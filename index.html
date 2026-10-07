@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motorola ASTRO 25 System Architecture Visualizer</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            astro: {
+              dark: '#0B0F19',
+              panel: '#111827',
+              card: '#1F2937',
+              border: '#374151',
+              cyan: '#06B6D4',
+              blue: '#2563EB',
+              emerald: '#10B981',
+              amber: '#F59E0B',
+              rose: '#F43F5E',
+              purple: '#8B5CF6'
+            }
+          },
+          animation: {
+            'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'dash': 'dash 1.5s linear infinite',
+          },
+          keyframes: {
+            dash: {
+              to: { strokeDashoffset: '-24' }
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom diagram styling */
+    .flow-active {
+      stroke-dasharray: 8 4;
+      animation: dash 0.8s linear infinite;
+    }
+    .node-glow-cyan {
+      filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.45));
+    }
+    .node-glow-amber {
+      filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.45));
+    }
+    .node-glow-emerald {
+      filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.45));
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #111827;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #4B5563;
+    }
+  </style>
+</head>
+<body class="bg-[#0B0F19] text-gray-100 font-sans antialiased min-h-screen flex flex-col overflow-x-hidden selection:bg-cyan-500 selection:text-black">
+
+  <header class="border-b border-gray-800 bg-[#0E1526]/90 backdrop-blur sticky top-0 z-50 px-4 lg:px-6 py-3">
+    <div class="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-950/40 border border-cyan-400/30">
+          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight text-white uppercase font-mono">ASTRO 25 Architecture</h1>
+            <span class="text-[10px] bg-cyan-900/60 text-cyan-300 px-2 py-0.5 rounded border border-cyan-700/50 font-mono">SYSTEM RELEASE 7.X / P25 CAPABLE</span>
+          </div>
+          <p class="text-xs text-gray-400">Interactive Technical Blueprint &amp; Signal Path Flow Engine</p>
+        </div>
+      </div>
+
+      <!-- Real-time Flow Controls -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div class="bg-gray-900/80 border border-gray-700/60 rounded-lg p-1 flex items-center gap-1 shadow-inner">
+          <button id="btn-flow-affil" onclick="triggerFlow('affiliation')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all bg-cyan-600 text-white shadow-sm flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-200 animate-ping"></span>
+            1. Unit Affiliation (RID 133)
+          </button>
+          <button id="btn-flow-call" onclick="triggerFlow('voice_call')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all text-gray-300 hover:text-white hover:bg-gray-800 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/>
+            </svg>
+            2. Simulcast PTT Voice
+          </button>
+          <button id="btn-flow-failover" onclick="triggerFlow('failover')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all text-gray-300 hover:text-white hover:bg-gray-800 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            3. Geo-Prime Failover
+          </button>
+          <button id="btn-flow-reset" onclick="resetFlow()" title="Reset Call Paths" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </button>
+        </div>
+
+        <button onclick="toggleCodeplugModal()" class="px-3 py-1.5 text-xs font-mono bg-blue-900/40 hover:bg-blue-800/60 border border-blue-600/40 text-blue-300 rounded-lg flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Codeplug &amp; Registers
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-[1920px] w-full mx-auto p-3 lg:p-5 grid grid-cols-1 xl:grid-cols-12 gap-4">
+    
+    <!-- LEFT / CENTER: Interactive Diagram Canvas (8 cols on XL) -->
+    <div class="xl:col-span-8 flex flex-col space-y-3">
+      <!-- Diagram Viewport Card -->
+      <div class="bg-[#0F172A] border border-gray-800 rounded-2xl p-3 sm:p-5 relative shadow-2xl flex flex-col overflow-hidden">
+        
+        <!-- Legend & Subsystem Filter Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-800 text-xs">
+          <div class="flex items-center space-x-4">
+            <span class="text-gray-400 font-mono text-[11px] uppercase tracking-wider">Subsystems:</span>
+            <span class="inline-flex items-center gap-1.5 text-cyan-400"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span>Z1 SYS Core</span>
+            <span class="inline-flex items-center gap-1.5 text-emerald-400"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Prime &amp; Geo Sites</span>
+            <span class="inline-flex items-center gap-1.5 text-blue-400"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>Transport / BH</span>
+            <span class="inline-flex items-center gap-1.5 text-purple-400"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>Consoles &amp; RF Sites</span>
+          </div>
+          <div class="text-[11px] font-mono text-gray-400 bg-gray-900/90 px-2.5 py-1 rounded border border-gray-700/60">
+            Interactive: Click any module for details &bull; Hover links for payload info
+          </div>
+        </div>
+
+        <!-- SVG Architecture Diagram Canvas -->
+        <div class="w-full relative overflow-x-auto custom-scroll py-2">
+          <svg id="astro-diagram" viewBox="0 0 1150 780" class="w-full min-w-[980px] h-auto select-none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <!-- Linear Gradients -->
+              <linearGradient id="grad-core" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1E293B" />
+                <stop offset="100%" stop-color="#0F172A" />
+              </linearGradient>
+              <linearGradient id="grad-prime" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#064E3B" stop-opacity="0.6"/>
+                <stop offset="100%" stop-color="#0F172A" />
+              </linearGradient>
+              <linearGradient id="grad-console" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#4C1D95" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="#0F172A" />
+              </linearGradient>
+              <linearGradient id="grad-cloud" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1E3A8A" stop-opacity="0.4"/>
+                <stop offset="100%" stop-color="#172554" stop-opacity="0.8"/>
+              </linearGradient>
+
+              <!-- Flow Path Marker Arrow -->
+              <marker id="arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#06B6D4" />
+              </marker>
+              <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#F59E0B" />
+              </marker>
+              <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#10B981" />
+              </marker>
+            </defs>
+
+            <!-- ================= BACKHAUL / CLOUD LAYER (CENTER) ================= -->
+            <g id="cloud-transport">
+              <!-- Cloud Outline -->
+              <path d="M 470 330 
+                       C 450 300, 480 260, 520 270 
+                       C 540 240, 590 240, 620 265 
+                       C 650 250, 690 270, 690 305 
+                       C 720 320, 720 370, 680 395 
+                       C 690 430, 650 455, 610 440 
+                       C 580 460, 530 455, 510 425 
+                       C 460 430, 440 380, 470 330 Z" 
+                    fill="url(#grad-cloud)" stroke="#3B82F6" stroke-width="2" stroke-dasharray="4 3" class="opacity-90"/>
+              
+              <text x="580" y="325" text-anchor="middle" fill="#93C5FD" font-size="16" font-weight="700" font-family="JetBrains Mono">BH (BACKHAUL)</text>
+              <text x="580" y="348" text-anchor="middle" fill="#60A5FA" font-size="11" font-weight="600">TRANSPORT CLOUD</text>
+              <text x="580" y="365" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="JetBrains Mono">MPLS / PTP MICROWAVE</text>
+              <text x="580" y="380" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="JetBrains Mono">DARK FIBER / 3RD PARTY</text>
+            </g>
+
+            <!-- ================= BACKHAUL CONNECTION PATHS (LINES) ================= -->
+            <!-- Path: Core Router Switch to Backhaul -->
+            <path id="path-core-bh" d="M 390 340 L 475 340" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+            
+            <!-- Path: Backhaul to Prime Site -->
+            <path id="path-bh-prime" d="M 640 280 Q 700 160 740 120" stroke="#475569" stroke-width="3" fill="none"/>
+            <text x="670" y="195" fill="#94A3B8" font-size="10" font-family="JetBrains Mono" font-weight="bold">BH</text>
+
+            <!-- Path: Prime Site to Geo-Prime Router -->
+            <path id="path-prime-geo" d="M 860 100 Q 940 85 980 105" stroke="#10B981" stroke-width="2.5" stroke-dasharray="5 3" fill="none"/>
+            <text x="915" y="85" text-anchor="middle" fill="#34D399" font-size="10" font-family="JetBrains Mono">GEO LINK (RTR-AR)</text>
+
+            <!-- Path: Backhaul to Remote Console Site -->
+            <path id="path-bh-console" d="M 590 445 Q 610 590 690 640" stroke="#475569" stroke-width="3" fill="none"/>
+            <text x="615" y="555" fill="#94A3B8" font-size="10" font-family="JetBrains Mono" font-weight="bold">BH</text>
+
+            <!-- Path: Backhaul to RF Site (ASR) -->
+            <path id="path-bh-rfsite" d="M 480 410 Q 420 480 395 550" stroke="#475569" stroke-width="3" fill="none"/>
+            <text x="445" y="490" fill="#94A3B8" font-size="10" font-family="JetBrains Mono" font-weight="bold">PtL / BH</text>
+
+            <!-- Path: Inter-Zone Exit Router Link -->
+            <path id="path-exit-z2" d="M 350 160 L 450 90" stroke="#38BDF8" stroke-width="2.5" stroke-dasharray="4 2" fill="none"/>
+            <text x="400" y="115" fill="#38BDF8" font-size="9" font-family="JetBrains Mono">BH (Z2 DSR / ZC3,4)</text>
+
+            <!-- ================= LEFT WHITEBOARD: Z1 SYS CORE ================= -->
+            <g id="zone-1-core">
+              <!-- Outer Boundary Container -->
+              <rect x="20" y="20" width="410" height="470" rx="14" fill="#0B132B" stroke="#0284C7" stroke-width="2" stroke-opacity="0.6"/>
+              
+              <!-- Zone Header Badge -->
+              <rect x="35" y="32" width="130" height="24" rx="6" fill="#0369A1"/>
+              <text x="100" y="48" text-anchor="middle" fill="#E0F2FE" font-size="12" font-weight="bold" font-family="JetBrains Mono">Z1 SYS CORE</text>
+              <text x="350" y="48" text-anchor="end" fill="#7DD3FC" font-size="10" font-family="JetBrains Mono">MASTER CORE</text>
+
+              <!-- UCS & Provisioning Manager (Top Left) -->
+              <g id="node-ucs" class="cursor-pointer group" onclick="showDetails('ucs')">
+                <rect x="35" y="68" width="165" height="52" rx="8" fill="#1E293B" stroke="#38BDF8" stroke-width="1.5" class="group-hover:stroke-cyan-300 transition-all"/>
+                <circle cx="50" cy="85" r="9" fill="#0284C7"/>
+                <text x="50" y="89" text-anchor="middle" fill="#FFFFFF" font-size="9" font-weight="bold">PM</text>
+                <text x="66" y="85" fill="#E2E8F0" font-size="11" font-weight="bold">UCS 10.0.0.1</text>
+                <text x="66" y="102" fill="#94A3B8" font-size="9" font-mono>RADIO PROFILE DISTRIB</text>
+              </g>
+
+              <!-- UNC Sched Mgr -->
+              <g id="node-unc" class="cursor-pointer group" onclick="showDetails('unc')">
+                <rect x="35" y="128" width="165" height="34" rx="6" fill="#1E293B" stroke="#64748B" stroke-width="1.2" class="group-hover:stroke-cyan-400 transition-all"/>
+                <text x="117" y="149" text-anchor="middle" fill="#F1F5F9" font-size="11" font-weight="600" font-family="JetBrains Mono">UNC SCHED MGR</text>
+              </g>
+              <path d="M 117 120 L 117 128" stroke="#38BDF8" stroke-width="1.5"/>
+
+              <!-- Virtual Machine Servers (VMS 1 & VMS 2) -->
+              <!-- VMS 1 Container -->
+              <g id="node-vms1" class="cursor-pointer" onclick="showDetails('vms1')">
+                <rect x="35" y="175" width="85" height="135" rx="6" fill="#111827" stroke="#38BDF8" stroke-width="1.5"/>
+                <rect x="35" y="175" width="85" height="20" rx="6" fill="#1E293B"/>
+                <text x="77" y="189" text-anchor="middle" fill="#38BDF8" font-size="10" font-weight="bold" font-family="JetBrains Mono">VMS 1</text>
+                
+                <!-- Slices in VMS 1 -->
+                <text x="77" y="210" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">ZC 1</text>
+                <line x1="35" y1="216" x2="120" y2="216" stroke="#374151"/>
+                <text x="77" y="231" text-anchor="middle" fill="#94A3B8" font-size="10" font-mono>UEM</text>
+                <line x1="35" y1="237" x2="120" y2="237" stroke="#374151"/>
+                <text x="77" y="252" text-anchor="middle" fill="#94A3B8" font-size="10" font-mono>ATR</text>
+                <line x1="35" y1="258" x2="120" y2="258" stroke="#374151"/>
+                <text x="77" y="273" text-anchor="middle" fill="#94A3B8" font-size="10" font-mono>ZDC</text>
+                <line x1="35" y1="279" x2="120" y2="279" stroke="#374151"/>
+                <text x="77" y="294" text-anchor="middle" fill="#94A3B8" font-size="10" font-mono>ZDS</text>
+              </g>
+
+              <!-- VMS 2 Container -->
+              <g id="node-vms2" class="cursor-pointer" onclick="showDetails('vms2')">
+                <rect x="127" y="175" width="85" height="135" rx="6" fill="#111827" stroke="#38BDF8" stroke-width="1.5"/>
+                <rect x="127" y="175" width="85" height="20" rx="6" fill="#1E293B"/>
+                <text x="170" y="189" text-anchor="middle" fill="#38BDF8" font-size="10" font-weight="bold" font-family="JetBrains Mono">VMS 2</text>
+                
+                <!-- Slices in VMS 2 -->
+                <text x="170" y="210" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">ZC 2</text>
+                <line x1="127" y1="216" x2="212" y2="216" stroke="#374151"/>
+                <text x="170" y="231" text-anchor="middle" fill="#94A3B8" font-size="10" font-mono>UNC</text>
+                <line x1="127" y1="237" x2="212" y2="237" stroke="#374151"/>
+                <text x="170" y="252" text-anchor="middle" fill="#94A3B8" font-size="10" font-mono>SYSC</text>
+                <line x1="127" y1="258" x2="212" y2="258" stroke="#374151"/>
+                <text x="170" y="273" text-anchor="middle" fill="#94A3B8" font-size="10" font-mono>UCS</text>
+                <line x1="127" y1="279" x2="212" y2="279" stroke="#374151"/>
+                <text x="170" y="294" text-anchor="middle" fill="#64748B" font-size="9" font-mono">STANDBY</text>
+              </g>
+
+              <!-- CORE LAN SWTS (Central Ethernet Switch) -->
+              <g id="node-lan-swts" class="cursor-pointer group" onclick="showDetails('lan_swts')">
+                <rect x="230" y="175" width="75" height="60" rx="6" fill="#1E293B" stroke="#0284C7" stroke-width="2" class="group-hover:stroke-cyan-300"/>
+                <text x="267" y="200" text-anchor="middle" fill="#38BDF8" font-size="10" font-weight="bold" font-family="JetBrains Mono">CORE LAN</text>
+                <text x="267" y="216" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="bold">SWTS</text>
+              </g>
+
+              <!-- EXIT RTRS (Zone Exit Routers) -->
+              <g id="node-exit-rtrs" class="cursor-pointer group" onclick="showDetails('exit_rtrs')">
+                <rect x="325" y="165" width="75" height="45" rx="6" fill="#1E293B" stroke="#0284C7" stroke-width="1.5" class="group-hover:stroke-cyan-300"/>
+                <text x="362" y="185" text-anchor="middle" fill="#38BDF8" font-size="9" font-weight="bold">EXIT</text>
+                <text x="362" y="200" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">RTRS</text>
+              </g>
+
+              <!-- UEM / NMC Client Terminal -->
+              <g id="node-nmc" class="cursor-pointer group" onclick="showDetails('nmc')">
+                <rect x="360" y="235" width="55" height="35" rx="5" fill="#111827" stroke="#94A3B8" stroke-width="1"/>
+                <text x="387" y="250" text-anchor="middle" fill="#38BDF8" font-size="9" font-weight="bold">UEM</text>
+                <text x="387" y="262" text-anchor="middle" fill="#E2E8F0" font-size="8" font-mono>NMC</text>
+              </g>
+              <line x1="305" y1="210" x2="360" y2="245" stroke="#64748B" stroke-width="1.5"/>
+
+              <!-- GTWY RTRS (Gateway Routers) -->
+              <g id="node-gtwy-rtrs" class="cursor-pointer group" onclick="showDetails('gtwy_rtrs')">
+                <rect x="215" y="260" width="60" height="40" rx="6" fill="#1E293B" stroke="#64748B" stroke-width="1.5" class="group-hover:stroke-cyan-300"/>
+                <text x="245" y="277" text-anchor="middle" fill="#94A3B8" font-size="8" font-weight="bold">GTWY</text>
+                <text x="245" y="291" text-anchor="middle" fill="#E2E8F0" font-size="9" font-weight="bold">RTRS</text>
+              </g>
+              <line x1="250" y1="235" x2="245" y2="260" stroke="#0284C7" stroke-width="1.5"/>
+
+              <!-- Connections from VMS to Core LAN SWTS -->
+              <path d="M 212" y="205" L 230 205" stroke="#38BDF8" stroke-width="2"/>
+              <path d="M 305 195 L 325 185" stroke="#38BDF8" stroke-width="2"/>
+
+              <!-- CORE RTRS & ENET BH SWT (Juniper Edge Routers) -->
+              <g id="node-core-rtrs" class="cursor-pointer group" onclick="showDetails('core_rtrs')">
+                <rect x="235" y="320" width="75" height="55" rx="6" fill="#111827" stroke="#2563EB" stroke-width="2" class="group-hover:stroke-blue-400"/>
+                <text x="272" y="342" text-anchor="middle" fill="#60A5FA" font-size="10" font-weight="bold">CORE</text>
+                <text x="272" y="358" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="bold">RTRS</text>
+                <text x="272" y="369" text-anchor="middle" fill="#93C5FD" font-size="7" font-mono">JUNIPER EDGE</text>
+              </g>
+
+              <g id="node-enet-bh" class="cursor-pointer group" onclick="showDetails('enet_bh')">
+                <rect x="320" y="320" width="70" height="55" rx="6" fill="#1E293B" stroke="#2563EB" stroke-width="2" class="group-hover:stroke-blue-400"/>
+                <text x="355" y="342" text-anchor="middle" fill="#93C5FD" font-size="9" font-weight="bold">ENET BH</text>
+                <text x="355" y="358" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">SWT</text>
+              </g>
+              <line x1="267" y1="235" x2="267" y2="320" stroke="#0284C7" stroke-width="2"/>
+              <line x1="310" y1="347" x2="320" y2="347" stroke="#2563EB" stroke-width="2"/>
+
+              <!-- Database Matrix: HLR & VLR Tables -->
+              <g id="group-hlr-vlr" class="cursor-pointer" onclick="showDetails('hlr_vlr')">
+                <!-- Sub Home Zone Box -->
+                <rect x="35" y="330" width="75" height="60" rx="4" fill="#1E293B" stroke="#475569" stroke-width="1.2"/>
+                <text x="72" y="343" text-anchor="middle" fill="#94A3B8" font-size="8" font-mono>HOME ZONE</text>
+                <line x1="35" y1="348" x2="110" y2="348" stroke="#334155"/>
+                <line x1="72" y1="348" x2="72" y2="390" stroke="#334155"/>
+                <text x="53" y="366" text-anchor="middle" fill="#38BDF8" font-size="11" font-weight="bold">I HLR</text>
+                <text x="91" y="366" text-anchor="middle" fill="#64748B" font-size="11" font-weight="bold">I VLR</text>
+                <text x="53" y="384" text-anchor="middle" fill="#38BDF8" font-size="11" font-weight="bold">G HLR</text>
+                <text x="91" y="384" text-anchor="middle" fill="#64748B" font-size="11" font-weight="bold">G VLR</text>
+
+                <!-- Dynamic VLR Box -->
+                <rect x="117" y="330" width="75" height="60" rx="4" fill="#1E293B" stroke="#475569" stroke-width="1.2"/>
+                <text x="154" y="343" text-anchor="middle" fill="#34D399" font-size="8" font-mono>DYNAMIC</text>
+                <line x1="117" y1="348" x2="192" y2="348" stroke="#334155"/>
+                <line x1="154" y1="348" x2="154" y2="390" stroke="#334155"/>
+                <text x="135" y="366" text-anchor="middle" fill="#34D399" font-size="11" font-weight="bold">I VLR</text>
+                <text x="173" y="366" text-anchor="middle" fill="#64748B" font-size="11" font-weight="bold">I HLR</text>
+                <text x="135" y="384" text-anchor="middle" fill="#34D399" font-size="11" font-weight="bold">G VLR</text>
+                <text x="173" y="384" text-anchor="middle" fill="#64748B" font-size="11" font-weight="bold">G HLR</text>
+              </g>
+
+              <!-- Affiliation Sample Data Box -->
+              <g id="box-sub-sample">
+                <rect x="35" y="405" width="165" height="42" rx="4" fill="#0F172A" stroke="#0284C7" stroke-width="1"/>
+                <line x1="35" y1="422" x2="200" y2="422" stroke="#1E293B"/>
+                <line x1="85" y1="405" x2="85" y2="447" stroke="#1E293B"/>
+                <line x1="145" y1="405" x2="145" y2="447" stroke="#1E293B"/>
+                <text x="60" y="418" text-anchor="middle" fill="#94A3B8" font-size="9" font-mono>RID</text>
+                <text x="115" y="418" text-anchor="middle" fill="#94A3B8" font-size="9" font-mono>TG</text>
+                <text x="172" y="418" text-anchor="middle" fill="#94A3B8" font-size="9" font-mono>SITE</text>
+                <text x="60" y="437" text-anchor="middle" fill="#38BDF8" font-size="11" font-weight="bold" font-mono>133</text>
+                <text x="115" y="437" text-anchor="middle" fill="#60A5FA" font-size="11" font-weight="bold" font-mono>BLUE</text>
+                <text x="172" y="437" text-anchor="middle" fill="#34D399" font-size="11" font-weight="bold" font-mono>10</text>
+              </g>
+            </g>
+
+            <!-- ================= TOP RIGHT: PRIME SITE & GEO PRIME ================= -->
+            <g id="prime-site-group">
+              <!-- Prime Site Enclosure -->
+              <rect x="710" y="25" width="220" height="235" rx="14" fill="#06251E" stroke="#059669" stroke-width="2" stroke-opacity="0.8"/>
+              
+              <!-- Oval Badge -->
+              <ellipse cx="795" cy="50" rx="55" ry="18" fill="#047857" stroke="#34D399" stroke-width="1.5"/>
+              <text x="795" y="55" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="bold" font-family="JetBrains Mono">PRIME SITE</text>
+
+              <!-- Routers -->
+              <g id="node-prime-rtrs" class="cursor-pointer group" onclick="showDetails('prime_rtrs')">
+                <rect x="760" y="76" width="70" height="28" rx="4" fill="#134E4A" stroke="#2DD4BF" stroke-width="1.2" class="group-hover:stroke-emerald-300"/>
+                <text x="795" y="94" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold" font-mono>RTRS</text>
+              </g>
+
+              <!-- Prime Site Sub-chassis: SC / COMP SWT / TRAK / AR's -->
+              <g id="node-prime-chassis" class="cursor-pointer" onclick="showDetails('prime_chassis')">
+                <rect x="735" y="112" width="120" height="135" rx="6" fill="#0F2E28" stroke="#10B981" stroke-width="1.5"/>
+                <text x="795" y="132" text-anchor="middle" fill="#A7F3D0" font-size="9" font-weight="bold" font-mono>SC's (CONTROLLER)</text>
+                <line x1="735" y1="140" x2="855" y2="140" stroke="#065F46"/>
+                <text x="795" y="158" text-anchor="middle" fill="#6EE7B7" font-size="10" font-weight="bold">COMP SWT</text>
+                <text x="795" y="170" text-anchor="middle" fill="#94A3B8" font-size="8">(VOTING COMPARATOR)</text>
+                <line x1="735" y1="178" x2="855" y2="178" stroke="#065F46"/>
+                <text x="795" y="195" text-anchor="middle" fill="#FCD34D" font-size="9" font-mono font-weight="bold">TRAK (GPS SYNC)</text>
+                <line x1="735" y1="204" x2="855" y2="204" stroke="#065F46"/>
+                
+                <!-- Audio Routers (AR's) Inner Box -->
+                <rect x="750" y="210" width="90" height="28" rx="4" fill="#064E3B" stroke="#34D399" stroke-width="1"/>
+                <text x="795" y="228" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold" font-mono>AR's (AUDIO RTR)</text>
+              </g>
+            </g>
+
+            <!-- ================= GEO-PRIME SITE (REDUNDANCY) ================= -->
+            <g id="geo-prime-group" class="cursor-pointer" onclick="showDetails('geo_prime')">
+              <rect x="970" y="35" width="160" height="150" rx="12" fill="#132E27" stroke="#10B981" stroke-width="1.5" stroke-dasharray="4 2"/>
+              <text x="1050" y="58" text-anchor="middle" fill="#34D399" font-size="11" font-weight="bold" font-family="JetBrains Mono">GEO PRIME</text>
+              
+              <!-- Geo Prime RTR -->
+              <rect x="990" y="70" width="120" height="26" rx="4" fill="#064E3B" stroke="#059669" stroke-width="1"/>
+              <text x="1050" y="87" text-anchor="middle" fill="#E2E8F0" font-size="9" font-bold font-mono>GEO PRIME RTR</text>
+              
+              <!-- Geo SC & AR -->
+              <rect x="990" y="103" width="120" height="68" rx="4" fill="#0A3F34" stroke="#059669" stroke-width="1"/>
+              <text x="1050" y="125" text-anchor="middle" fill="#A7F3D0" font-size="11" font-weight="bold">SC (REDUNDANT)</text>
+              <circle cx="1050" cy="148" r="14" fill="#047857" stroke="#6EE7B7" stroke-width="1.5"/>
+              <text x="1050" y="152" text-anchor="middle" fill="#FFFFFF" font-size="9" font-mono font-weight="bold">AR</text>
+            </g>
+
+            <!-- ================= SIMULCAST SUBSITES (SS1 & SS2 ... SS32) ================= -->
+            <g id="subsite-1" class="cursor-pointer group" onclick="showDetails('subsite1')">
+              <rect x="850" y="295" width="105" height="90" rx="8" fill="#1E293B" stroke="#10B981" stroke-width="1.5" class="group-hover:stroke-emerald-300"/>
+              <rect x="850" y="295" width="105" height="20" rx="8" fill="#0F766E"/>
+              <text x="902" y="309" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold" font-mono>SS 1 (SUBSITE)</text>
+              
+              <rect x="860" y="322" width="85" height="25" rx="3" fill="#0F172A" stroke="#475569"/>
+              <text x="902" y="338" text-anchor="middle" fill="#38BDF8" font-size="10" font-mono font-weight="bold">RTRS</text>
+              
+              <rect x="860" y="352" width="85" height="25" rx="3" fill="#0F172A" stroke="#10B981"/>
+              <text x="902" y="368" text-anchor="middle" fill="#34D399" font-size="10" font-mono font-weight="bold">BR's (BASE RAD)</text>
+            </g>
+
+            <g id="subsite-2" class="cursor-pointer group" onclick="showDetails('subsite2')">
+              <rect x="850" y="420" width="105" height="90" rx="8" fill="#1E293B" stroke="#10B981" stroke-width="1.5" class="group-hover:stroke-emerald-300"/>
+              <rect x="850" y="420" width="105" height="20" rx="8" fill="#0F766E"/>
+              <text x="902" y="434" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold" font-mono>SS 2 (SUBSITE)</text>
+              
+              <rect x="860" y="447" width="85" height="25" rx="3" fill="#0F172A" stroke="#475569"/>
+              <text x="902" y="463" text-anchor="middle" fill="#38BDF8" font-size="10" font-mono font-weight="bold">RTRS</text>
+              
+              <rect x="860" y="477" width="85" height="25" rx="3" fill="#0F172A" stroke="#10B981"/>
+              <text x="902" y="493" text-anchor="middle" fill="#34D399" font-size="10" font-mono font-weight="bold">BR's (BASE RAD)</text>
+            </g>
+
+            <!-- Dots indicating up to 32 Subsites -->
+            <text x="965" y="435" fill="#6EE7B7" font-size="16" font-weight="bold">...</text>
+            <text x="990" y="435" fill="#6EE7B7" font-size="12" font-weight="bold" font-mono>32 SUB SITES</text>
+
+            <!-- Connect Prime Site AR's to SS1 and SS2 -->
+            <path id="path-prime-ss1" d="M 830 247 L 850 310" stroke="#10B981" stroke-width="2"/>
+            <path id="path-prime-ss2" d="M 810 247 Q 820 380 850 435" stroke="#10B981" stroke-width="2"/>
+            <path id="path-geoprime-ss1" d="M 1030 185 Q 980 260 955 310" stroke="#059669" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+            <!-- ================= BOTTOM RIGHT: REMOTE CONSOLE SITE ================= -->
+            <g id="console-site-group">
+              <rect x="670" y="585" width="460" height="175" rx="14" fill="#1E1B4B" stroke="#8B5CF6" stroke-width="2" stroke-opacity="0.8"/>
+              
+              <ellipse cx="780" cy="610" rx="90" ry="16" fill="#6D28D9" stroke="#C4B5FD" stroke-width="1.2"/>
+              <text x="780" y="614" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="bold" font-family="JetBrains Mono">REMOTE CONSOLE SITE</text>
+
+              <!-- Console Site Router -->
+              <g id="node-console-rtr" class="cursor-pointer group" onclick="showDetails('console_rtr')">
+                <rect x="690" y="645" width="75" height="40" rx="6" fill="#312E81" stroke="#A78BFA" stroke-width="1.5" class="group-hover:stroke-purple-300"/>
+                <text x="727" y="670" text-anchor="middle" fill="#FFFFFF" font-size="11" font-bold font-mono>RTRS</text>
+              </g>
+
+              <!-- SWT 1 (Operator 1 Switch) -->
+              <g id="node-swt1" class="cursor-pointer group" onclick="showDetails('swt1')">
+                <rect x="780" y="635" width="105" height="35" rx="4" fill="#0F172A" stroke="#8B5CF6" stroke-width="1.5"/>
+                <text x="832" y="650" text-anchor="middle" fill="#DDD6FE" font-size="10" font-weight="bold">SWT 1 (LAN)</text>
+                <!-- Switch RJ45 Ports graphical detail -->
+                <rect x="786" y="656" width="93" height="8" fill="#1F2937" stroke="#4B5563"/>
+              </g>
+
+              <!-- Operator 1 (OP1 Console) -->
+              <g id="node-op1" class="cursor-pointer group" onclick="showDetails('op1')">
+                <rect x="910" y="635" width="55" height="40" rx="5" fill="#2E1065" stroke="#A855F7" stroke-width="1.5" class="group-hover:scale-105 transition-all"/>
+                <text x="937" y="653" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">OP 1</text>
+                <text x="937" y="666" text-anchor="middle" fill="#C084FC" font-size="8" font-mono>MCC 7500</text>
+              </g>
+              <line x1="765" y1="655" x2="780" y2="655" stroke="#8B5CF6" stroke-width="2"/>
+              <line x1="885" y1="655" x2="910" y2="655" stroke="#A855F7" stroke-width="2"/>
+
+              <!-- SWT 2 (Operator 2 Switch) -->
+              <g id="node-swt2" class="cursor-pointer group" onclick="showDetails('swt2')">
+                <rect x="780" y="700" width="105" height="35" rx="4" fill="#0F172A" stroke="#8B5CF6" stroke-width="1.5"/>
+                <text x="832" y="715" text-anchor="middle" fill="#DDD6FE" font-size="10" font-weight="bold">SWT 2 (LAN)</text>
+                <rect x="786" y="721" width="93" height="8" fill="#1F2937" stroke="#4B5563"/>
+              </g>
+
+              <!-- Operator 2 (OP2 Console) -->
+              <g id="node-op2" class="cursor-pointer group" onclick="showDetails('op2')">
+                <rect x="690" y="700" width="55" height="40" rx="5" fill="#2E1065" stroke="#A855F7" stroke-width="1.5"/>
+                <text x="717" y="718" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">OP 2</text>
+                <text x="717" y="731" text-anchor="middle" fill="#C084FC" font-size="8" font-mono>MCC 7500</text>
+              </g>
+              <line x1="745" y1="718" x2="780" y2="718" stroke="#8B5CF6" stroke-width="2"/>
+              <line x1="727" y1="685" x2="727" y2="700" stroke="#8B5CF6" stroke-width="1.5"/>
+
+              <!-- CCGW (Conventional Channel Gateway) & Tower -->
+              <g id="node-ccgw" class="cursor-pointer group" onclick="showDetails('ccgw')">
+                <rect x="915" y="700" width="65" height="35" rx="5" fill="#3B0764" stroke="#D946EF" stroke-width="1.5" class="group-hover:stroke-fuchsia-300"/>
+                <text x="947" y="722" text-anchor="middle" fill="#F0ABFC" font-size="10" font-weight="bold" font-mono>CCGW</text>
+              </g>
+              <line x1="885" y1="718" x2="915" y2="718" stroke="#D946EF" stroke-width="2"/>
+
+              <!-- Antenna Tower Graphic -->
+              <path d="M 1030 735 L 1050 670 L 1070 735 M 1038 710 L 1062 710 M 1044 690 L 1056 690 M 1050 670 L 1050 655" stroke="#C084FC" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="1050" cy="655" r="3" fill="#F43F5E"/>
+              <path d="M 980 718 L 1030 710" stroke="#C084FC" stroke-width="1.5" stroke-dasharray="3 2"/>
+            </g>
+
+            <!-- ================= BOTTOM LEFT: RF SITE (ASR) & SUBSCRIBER UNIT ================= -->
+            <g id="rf-site-group">
+              <!-- Site Container -->
+              <rect x="290" y="540" width="165" height="150" rx="10" fill="#111827" stroke="#38BDF8" stroke-width="1.5"/>
+              <circle cx="340" cy="552" r="16" fill="#0284C7" stroke="#38BDF8" stroke-width="1"/>
+              <text x="340" y="556" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold" font-mono>ASR</text>
+              <text x="365" y="556" fill="#93C5FD" font-size="10" font-weight="bold">RF SITE 10</text>
+
+              <!-- RF Site Router -->
+              <g id="node-rf-rtr" class="cursor-pointer" onclick="showDetails('rf_rtr')">
+                <rect x="340" y="580" width="90" height="28" rx="4" fill="#1E293B" stroke="#475569" stroke-width="1.2"/>
+                <text x="385" y="598" text-anchor="middle" fill="#FFFFFF" font-size="10" font-mono font-weight="bold">RTRS</text>
+              </g>
+
+              <!-- SC's & BR's Chassis -->
+              <g id="node-rf-sc-br" class="cursor-pointer" onclick="showDetails('rf_sc_br')">
+                <rect x="340" y="618" width="90" height="60" rx="4" fill="#0F172A" stroke="#0284C7" stroke-width="1.5"/>
+                <text x="385" y="638" text-anchor="middle" fill="#38BDF8" font-size="10" font-weight="bold">SC's (CONT.)</text>
+                <line x1="340" y1="646" x2="430" y2="646" stroke="#334155"/>
+                <text x="385" y="665" text-anchor="middle" fill="#10B981" font-size="10" font-weight="bold">BR's (BASE)</text>
+              </g>
+              <line x1="385" y1="608" x2="385" y2="618" stroke="#475569" stroke-width="1.5"/>
+
+              <!-- Control Path Note -->
+              <ellipse cx="445" cy="715" rx="50" ry="24" fill="#0C4A6E" stroke="#38BDF8" stroke-width="1.2"/>
+              <text x="445" y="708" text-anchor="middle" fill="#7DD3FC" font-size="9" font-weight="bold" font-mono>CTRL PATH</text>
+              <text x="445" y="724" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="bold">SC &rarr; ZC</text>
+            </g>
+
+            <!-- Subscriber Unit Handheld / Mobile Radio (RID 133, TG Blue) -->
+            <g id="subscriber-unit" class="cursor-pointer group" onclick="showDetails('subscriber')">
+              <!-- Radio Body -->
+              <rect x="195" y="605" width="48" height="88" rx="8" fill="#1E293B" stroke="#F59E0B" stroke-width="2" class="group-hover:stroke-amber-300"/>
+              <!-- Radio Antenna -->
+              <line x1="205" y1="605" x2="205" y2="560" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="205" cy="558" r="2.5" fill="#F59E0B"/>
+              <!-- Radio Screen -->
+              <rect x="202" y="616" width="34" height="24" rx="2" fill="#0284C7"/>
+              <text x="219" y="628" text-anchor="middle" fill="#FFFFFF" font-size="7" font-mono font-weight="bold">TG BLUE</text>
+              <text x="219" y="636" text-anchor="middle" fill="#E0F2FE" font-size="6" font-mono>RID 133</text>
+              
+              <!-- PTT Button -->
+              <rect x="191" y="625" width="4" height="15" rx="2" fill="#EF4444"/>
+              
+              <!-- Label -->
+              <text x="219" y="712" text-anchor="middle" fill="#FBBF24" font-size="10" font-weight="bold">UNIT 133</text>
+              <text x="219" y="726" text-anchor="middle" fill="#94A3B8" font-size="8" font-mono>AFFIL: TG BLUE</text>
+
+              <!-- RF Waves radiating to ASR antenna -->
+              <path id="rf-wave-1" d="M 235 585 A 25 25 0 0 1 250 565" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.8"/>
+              <path id="rf-wave-2" d="M 245 595 A 35 35 0 0 1 265 555" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5"/>
+            </g>
+
+            <!-- Dynamic Animated Signal Flow Path Overlay -->
+            <path id="animated-signal-path" d="" fill="none" stroke="#06B6D4" stroke-width="4" stroke-linecap="round" class="hidden transition-all duration-300"/>
+          </svg>
+        </div>
+
+        <!-- Realtime Flow Step Indicator -->
+        <div id="flow-indicator-bar" class="mt-2 bg-gray-900/90 border border-gray-800 rounded-xl p-3 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <span id="flow-step-badge" class="px-2 py-0.5 rounded bg-cyan-900/80 text-cyan-300 font-mono text-xs border border-cyan-700/50">FLOW IDLE</span>
+            <p id="flow-step-text" class="text-xs text-gray-300 font-mono">Select a flow simulation above to visualize Astro 25 signaling sequences.</p>
+          </div>
+          <div id="flow-progress-dots" class="flex items-center space-x-1">
+            <span class="w-2 h-2 rounded-full bg-gray-700"></span>
+            <span class="w-2 h-2 rounded-full bg-gray-700"></span>
+            <span class="w-2 h-2 rounded-full bg-gray-700"></span>
+            <span class="w-2 h-2 rounded-full bg-gray-700"></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Quick Concept Whiteboard Annotations Ribbon -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="bg-gray-900/70 border border-gray-800/80 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-cyan-400 font-mono">CODEPLUG PARAMS</span>
+            <span class="text-[10px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">SUBSCRIBER</span>
+          </div>
+          <ul class="text-xs space-y-1 font-mono text-gray-300">
+            <li><span class="text-gray-500">&bull; RID:</span> 133 (Individual ID)</li>
+            <li><span class="text-gray-500">&bull; CC FREQ:</span> Auto-Scan to SCA/Site 10</li>
+            <li><span class="text-gray-500">&bull; SYS ID:</span> 0x2A1 (WACN: BEE00)</li>
+            <li><span class="text-gray-500">&bull; TG:</span> BLUE (Hex: 0x0041)</li>
+            <li><span class="text-gray-500">&bull; SPECIAL:</span> AES-256 / OTAP / DVP</li>
+          </ul>
+        </div>
+
+        <div class="bg-gray-900/70 border border-gray-800/80 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-emerald-400 font-mono">SIMULCAST TIMING</span>
+            <span class="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-800">TRAK &bull; GPS</span>
+          </div>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            All 32 Subsites (SS1–SS32) locked via <span class="text-emerald-300 font-mono">TRAK GPS</span> standard to prevent delay-spread distortion in overlap zones (&plusmn;2 &mu;s window).
+          </p>
+          <div class="mt-2 text-[11px] font-mono text-emerald-400/90 flex items-center justify-between">
+            <span>Comparator: Voting Active</span>
+            <span>Jitter Buffer: 40ms</span>
+          </div>
+        </div>
+
+        <div class="bg-gray-900/70 border border-gray-800/80 rounded-xl p-3 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-purple-400 font-mono">DISPATCH CONSOLES</span>
+            <span class="text-[10px] bg-purple-950 text-purple-300 px-1.5 py-0.5 rounded border border-purple-800">MCC 7500 / CCGW</span>
+          </div>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Remote Console Site houses redundant Ethernet switches (SWT1/SWT2), Operator positions OP1/OP2, and Conventional Channel Gateway (CCGW).
+          </p>
+          <div class="mt-2 text-[11px] font-mono text-purple-400/90 flex items-center justify-between">
+            <span>Voice Protocol: P25 DFSI / IP</span>
+            <span>QoS: Expedited Forwarding</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Telemetry, Deep-Dive Inspector & Database Ledger (4 cols on XL) -->
+    <div class="xl:col-span-4 flex flex-col space-y-4">
+      
+      <!-- Component Inspector Card -->
+      <div id="inspector-card" class="bg-gray-900/90 border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+          <div class="flex items-center space-x-2">
+            <span id="component-icon" class="w-8 h-8 rounded-lg bg-cyan-900/40 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </span>
+            <div>
+              <h2 id="component-name" class="text-sm font-bold text-white font-mono uppercase">VMS 1 (Virtual Machine Server 1)</h2>
+              <span id="component-category" class="text-[10px] font-mono text-cyan-400">Z1 SYS CORE &bull; VIRTUALIZED SERVER</span>
+            </div>
+          </div>
+          <span id="component-status" class="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-950 text-emerald-300 border border-emerald-800">ONLINE</span>
+        </div>
+
+        <!-- Component Description Content -->
+        <div class="space-y-3 text-xs">
+          <p id="component-desc" class="text-gray-300 leading-relaxed">
+            Houses Zone Controller 1 (ZC1), Unified Event Manager (UEM), Audio Trapper/Router (ATR), Zone Database Collector (ZDC), and Zone Database Server (ZDS). Handles active call processing and mobility tracking.
+          </p>
+
+          <div class="bg-black/40 rounded-xl p-3 border border-gray-800 font-mono space-y-1.5 text-[11px]">
+            <div class="text-gray-400 font-semibold mb-1 uppercase tracking-wider text-[10px]">Technical Specifications:</div>
+            <div class="flex justify-between"><span class="text-gray-500">Virtualization:</span> <span id="spec-virt" class="text-cyan-300">VMware ESXi Host</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Sub-Services:</span> <span id="spec-services" class="text-white">ZC 1, UEM, ATR, ZDC, ZDS</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">LAN Interface:</span> <span id="spec-interface" class="text-white">10.0.0.10/24 Core LAN</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Redundancy:</span> <span id="spec-redundancy" class="text-amber-400">1:1 Hot Standby (VMS 2)</span></div>
+          </div>
+
+          <div class="pt-2">
+            <h4 class="text-[11px] font-bold text-gray-400 uppercase tracking-wider font-mono mb-1">Architecture Whiteboard Context:</h4>
+            <p id="component-whiteboard-note" class="text-gray-400 text-xs italic bg-gray-800/40 p-2.5 rounded-lg border border-gray-700/40">
+              Corresponds to the left whiteboard stack: &ldquo;VMS 1: ZC 1, UEM, ATR, ZDC, ZDS&rdquo;. Connects directly to Core LAN SWTS to receive control messages from Site Controllers.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Registry Monitor (HLR / VLR Database) -->
+      <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-3">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            <h3 class="text-xs font-bold text-white font-mono uppercase">Zone Controller Database Ledger</h3>
+          </div>
+          <span class="text-[10px] font-mono text-gray-400">P25 TIA-102 Standards</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+          <!-- Home Box -->
+          <div class="bg-gray-800/50 p-2.5 rounded-xl border border-gray-700/60">
+            <div class="text-[10px] font-bold text-cyan-400 font-mono mb-1">HOME REGISTERS (HLR)</div>
+            <div class="space-y-1 font-mono text-[11px]">
+              <div class="flex justify-between text-gray-300">
+                <span>I-HLR (Indiv):</span>
+                <span class="text-cyan-300 font-bold">133 (Auth'd)</span>
+              </div>
+              <div class="flex justify-between text-gray-300">
+                <span>G-HLR (Group):</span>
+                <span class="text-cyan-300 font-bold">BLUE (Active)</span>
+              </div>
+            </div>
+          </div>
+          <!-- Dynamic Visitor Box -->
+          <div class="bg-gray-800/50 p-2.5 rounded-xl border border-gray-700/60">
+            <div class="text-[10px] font-bold text-emerald-400 font-mono mb-1">VISITOR REGISTERS (VLR)</div>
+            <div class="space-y-1 font-mono text-[11px]">
+              <div class="flex justify-between text-gray-300">
+                <span>I-VLR (Site):</span>
+                <span id="vlr-site-val" class="text-emerald-300 font-bold">Site 10 (ASR)</span>
+              </div>
+              <div class="flex justify-between text-gray-300">
+                <span>G-VLR (Affil):</span>
+                <span id="vlr-affil-val" class="text-emerald-300 font-bold">Affiliated</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent System Events Log -->
+        <div class="mt-1 flex-1 flex flex-col">
+          <div class="text-[10px] font-mono text-gray-400 uppercase font-semibold mb-1 flex items-center justify-between">
+            <span>Core Event Telemetry</span>
+            <span class="text-[9px] text-cyan-400">Live Stream</span>
+          </div>
+          <div id="event-stream" class="bg-black/60 rounded-xl p-2.5 border border-gray-800 font-mono text-[10px] space-y-1.5 h-44 overflow-y-auto custom-scroll text-gray-400">
+            <div class="text-gray-500">[00:00:01] System boot complete. SYS ID: 0x2A1 Core Online.</div>
+            <div class="text-cyan-400">[00:00:02] UCS 10.0.0.1 synced Radio Profiles with UNC Scheduler.</div>
+            <div class="text-gray-400">[00:00:04] Prime Site Comparator online: GPS TRAK sync locked (0 ppb drift).</div>
+            <div class="text-emerald-400">[00:00:06] SS 1 - SS 32 Subsites reporting clean backhaul latency (&lt;12ms).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Codeplug & Parameters Detailed Inspector -->
+  <div id="codeplug-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+        <div>
+          <h3 class="text-base font-bold text-white font-mono uppercase">Radio Codeplug &amp; System Configuration</h3>
+          <p class="text-xs text-gray-400 font-mono">Subscriber Provisioning &bull; Motorola ASTRO 25 CPS / RadioCentral</p>
+        </div>
+        <button onclick="toggleCodeplugModal()" class="text-gray-400 hover:text-white p-1 rounded-lg">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+        <div class="bg-gray-800/60 p-4 rounded-xl border border-gray-700/60 space-y-2">
+          <h4 class="font-bold text-cyan-400 border-b border-gray-700 pb-1 uppercase">Subscriber Persona (Unit 133)</h4>
+          <div class="flex justify-between"><span class="text-gray-400">Radio ID (RID):</span> <span class="text-white font-bold">133</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Current Talkgroup:</span> <span class="text-blue-400 font-bold">TG BLUE (0x0041)</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Current RF Site:</span> <span class="text-emerald-400 font-bold">SITE 10 (ASR)</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Control Ch Scan:</span> <span class="text-white">851.0125, 851.5125 MHz</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Encryption Algo:</span> <span class="text-amber-400 font-bold">AES-256 (CKR 0001)</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Emergency Button:</span> <span class="text-red-400">Enabled (Tactical Alarm)</span></div>
+        </div>
+
+        <div class="bg-gray-800/60 p-4 rounded-xl border border-gray-700/60 space-y-2">
+          <h4 class="font-bold text-purple-400 border-b border-gray-700 pb-1 uppercase">Zone Core System Properties</h4>
+          <div class="flex justify-between"><span class="text-gray-400">System ID (SYS ID):</span> <span class="text-white">0x2A1 (WACN: BEE00)</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Primary Core ZC:</span> <span class="text-cyan-300">VMS 1 / ZC 1</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Redundant ZC:</span> <span class="text-cyan-300">VMS 2 / ZC 2</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Inter-Zone DSR:</span> <span class="text-white">Enabled &rarr; Z2, ZC3, ZC4</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Provisioning Mgr (PM):</span> <span class="text-white">UCS 10.0.0.1</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Simulcast Subsites:</span> <span class="text-emerald-400">32 Subsites Supported</span></div>
+        </div>
+      </div>
+
+      <div class="mt-4 p-3 bg-cyan-950/40 border border-cyan-800/60 rounded-xl text-xs text-gray-300 leading-relaxed font-sans">
+        <span class="font-bold text-cyan-300 font-mono">Engineering Whiteboard Note:</span>
+        These parameters directly match the lower left whiteboard annotations: <span class="font-mono text-cyan-200">RID 133 | TG BLUE | SITE 10</span>, and the codeplug checklist: <span class="font-mono text-cyan-200">- RID, - CC FREQ to SCAN, - SYS ID, - TG's, - SPECIAL FEAT</span>.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Component Technical Database extracted from ASTRO 25 Whiteboard
+    const componentsData = {
+      ucs: {
+        name: "UCS 10.0.0.1 (Unified Communication Server)",
+        category: "Z1 SYS CORE • CONFIGURATION & PROVISIONING",
+        status: "ACTIVE",
+        virt: "Physical / Virtual Appliance",
+        services: "PM (Provisioning Manager), Radio Profile Distribution, UNC Integration",
+        interface: "10.0.0.1/24 (Management Core LAN)",
+        redundancy: "Database Synchronized to VMS 2 Standby",
+        desc: "Unified Communication Server acting as the single point of entry for subscriber provisioning and feature distribution. Houses the Provisioning Manager (PM) which automatically compiles and pushes radio profiles across the ASTRO 25 system.",
+        wbNote: "Marked at top left: 'UCS 10.0.0.1 (PM) RADIO PROFILE DISTRIB -> UNC SCHED MGR'."
+      },
+      unc: {
+        name: "UNC SCHED MGR (Unified Network Configurator)",
+        category: "Z1 SYS CORE • SCHEDULING & DEPLOYMENT",
+        status: "ACTIVE",
+        virt: "Core Virtual Service",
+        services: "Batch Job Scheduler, Radio Codeplug Over-The-Air Provisioning (OTAP)",
+        interface: "Internal System Bus to VMS 1 & 2",
+        redundancy: "Active / Warm Standby",
+        desc: "Coordinates automated scheduled jobs for firmware updates, codeplug modifications, and encryption key re-keying sessions through Over-The-Air-Rekeying (OTAR).",
+        wbNote: "Marked at top left: 'UNC SCHED MGR', receiving feeds from UCS PM and connecting directly into Core LAN Switches."
+      },
+      vms1: {
+        name: "VMS 1 (Virtual Machine Server 1)",
+        category: "Z1 SYS CORE • ACTIVE PROCESSING HYPERVISOR",
+        status: "PRIMARY ONLINE",
+        virt: "VMware vSphere Enterprise Plus",
+        services: "ZC 1, UEM, ATR, ZDC, ZDS",
+        interface: "Trunked VLAN 10/20 to Core LAN Switches",
+        redundancy: "1:1 Geographically & Hardware Redundant with VMS 2",
+        desc: "Host server running critical ASTRO 25 virtual machines: Zone Controller 1 (ZC 1 - call processing engine), Unified Event Manager (UEM), Audio Trapper/Router (ATR), Zone Database Collector (ZDC), and Zone Database Server (ZDS).",
+        wbNote: "Drawn as primary VMS stack with 5 distinct partition slots: ZC1, UEM, ATR, ZDC, ZDS."
+      },
+      vms2: {
+        name: "VMS 2 (Virtual Machine Server 2)",
+        category: "Z1 SYS CORE • SECONDARY / BACKUP HYPERVISOR",
+        status: "HOT STANDBY",
+        virt: "VMware vSphere Enterprise Plus",
+        services: "ZC 2, UNC, SYSC, UCS Backup Slice",
+        interface: "Trunked VLAN 10/20 to Core LAN Switches",
+        redundancy: "Automatic Failover in < 500ms on ZC 1 failure",
+        desc: "Secondary hypervisor hosting Zone Controller 2 (ZC 2) in hot-standby configuration with continuous state synchronization. If ZC 1 loses heartbeat, ZC 2 immediately assumes call routing without dropped sessions.",
+        wbNote: "Drawn side-by-side with VMS 1 containing ZC2, UNC, SYSC, UCS."
+      },
+      lan_swts: {
+        name: "Core LAN SWTS (Core LAN Switches)",
+        category: "Z1 SYS CORE • ETHERNET SWITCHING FABRIC",
+        status: "REDUNDANT MESH",
+        virt: "Dual Layer 3 Enterprise Switches",
+        services: "VLAN Segmentation, VRRP/HSRP Gateway Redundancy",
+        interface: "10 GbE SFP+ Aggregated Links",
+        redundancy: "Dual Core Switch Stack (Switch A / Switch B)",
+        desc: "The high-speed switching backbone within the System Core. Interconnects VMS hypervisors, Gateway Routers (GTWY RTRS), Zone Exit Routers, Network Management Client (NMC/UEM), and the Juniper Edge Core Routers.",
+        wbNote: "Central nexus box labeled 'CORE LAN SWTS' with cross-connecting arrows to Exit Routers, Gateway Routers, and Core Routers."
+      },
+      exit_rtrs: {
+        name: "Exit RTRS (Zone Exit Routers)",
+        category: "Z1 SYS CORE • INTER-ZONE BACKHAUL PEERING",
+        status: "CONNECTED",
+        virt: "Dedicated Boundary Edge Routers",
+        services: "DSR Peering, Inter-Zone Talkgroup Routing, BGP Dynamic Routing",
+        interface: "Dedicated MPLS Inter-Zone Backbone",
+        redundancy: "Dual Exit Routers with automatic path reroute",
+        desc: "Facilitates Dynamic System Resilience (DSR) between Master System Core Z1 and secondary core Z2 or peer cores ZC3 and ZC4. Allows roaming users to retain group calls across wide areas.",
+        wbNote: "Connected to top right of Core LAN SWTS: 'BH -> Z2 DSR, EXIT RTRS, ZC3, ZC4'."
+      },
+      nmc: {
+        name: "UEM / NMC (Network Management Client & Console)",
+        category: "Z1 SYS CORE • NETWORK MANAGEMENT OPERATIONS",
+        status: "MONITORING",
+        virt: "Operator Desktop Workstation / Server",
+        services: "SNMP Alarms, Realtime Topology Health, Syslog, Fault Management",
+        interface: "OAM Management VLAN",
+        redundancy: "Multiple Dispatch & NOC Workstations Supported",
+        desc: "Provides Network Operations Center (NOC) engineers with end-to-end visibility of every ASTRO 25 base radio, site controller, comparator, and backhaul link in the statewide network.",
+        wbNote: "Labeled as 'UEM / NMC' hanging directly off Core LAN SWTS."
+      },
+      gtwy_rtrs: {
+        name: "GTWY RTRS (Gateway Routers)",
+        category: "Z1 SYS CORE • IP GATEWAY ROUTING",
+        status: "ACTIVE",
+        virt: "Industrial Edge Gateway",
+        services: "NAT, Firewall Boundaries, CAD/RMS Interface Translation",
+        interface: "Dual 1 GbE Interfaces",
+        redundancy: "Dual Redundant Pair",
+        desc: "Routes inter-network IP traffic between external dispatch networks, Computer-Aided Dispatch (CAD) systems, and the internal secure P25 signaling domain.",
+        wbNote: "Labled 'GTWY RTRS' directly underneath Core LAN Switches."
+      },
+      core_rtrs: {
+        name: "Core RTRS (Juniper Edge Routers)",
+        category: "Z1 SYS CORE • BACKHAUL TRANSPORT ROUTER",
+        status: "ROUTING",
+        virt: "Juniper Enterprise High-Throughput Edge Routers",
+        services: "MPLS Label Switching, QoS DiffServ (EF for Audio), BGP/OSPF",
+        interface: "Fiber Optic Trunks to Ethernet Backhaul Switch",
+        redundancy: "Full Carrier-Grade Dual Control Plane",
+        desc: "High-grade Juniper routers that enforce mission-critical Quality of Service (QoS). Prioritizes P25 voice traffic and trunking control messages over bulk management traffic before hitting the Backhaul Cloud.",
+        wbNote: "Annotated in blue marker: 'CORE RTRS / JUNIPER EDGE RTRS'."
+      },
+      enet_bh: {
+        name: "ENET BH SWT (Ethernet Backhaul Switch)",
+        category: "TRANSPORT / BACKHAUL BOUNDARY",
+        status: "ACTIVE",
+        virt: "Carrier Ethernet Demarcation Switch",
+        services: "Metro Ethernet Demarc, 802.1Q VLAN Trunking",
+        interface: "Optical Fiber Backhaul Interfaces",
+        redundancy: "Dual Power, Ring Protection (ITU-T G.8032)",
+        desc: "Demarcation switch linking the System Core's Juniper Routers to the wide-area transport cloud (MPLS, PTP microwave links, dark fiber rings).",
+        wbNote: "Labled 'ENET BH SWT' bridging CORE RTRS to the BH Cloud."
+      },
+      hlr_vlr: {
+        name: "HLR & VLR (Home & Visitor Location Registers)",
+        category: "Z1 SYS CORE • MOBILITY DATABASE MATRIX",
+        status: "SYNCHRONIZED",
+        virt: "In-Memory Zone Controller Database Engine",
+        services: "I-HLR, G-HLR, Dynamic I-VLR, Dynamic G-VLR Tracking",
+        interface: "Zone Controller Internal Memory IPC",
+        redundancy: "Real-time State Mirroring between ZC 1 and ZC 2",
+        desc: "Maintains identity and site affiliation. Individual HLR stores permanent radio provisioning; Group HLR stores talkgroup permissions. Dynamic VLR tracks exactly which RF Site or Simulcast cell the radio is currently registered on.",
+        wbNote: "Prominent 4-quadrant table drawn on lower left: 'SUB HOME ZONE: I HLR / I VLR / G HLR / G VLR' and 'DYNAMIC: I VLR / G VLR'."
+      },
+      prime_rtrs: {
+        name: "Prime Site Routers",
+        category: "SIMULCAST PRIME SITE • TRANSPORT ROUTING",
+        status: "ACTIVE",
+        virt: "Hardened Microwave / Fiber Router",
+        services: "Multicast Ingress, IP Multicast Group IGMPv3",
+        interface: "Backhaul Cloud to Prime Comparator Switch",
+        redundancy: "Redundant WAN Interfaces",
+        desc: "Ingress point for audio streams and control packets sent from the System Core to the Simulcast Prime Site.",
+        wbNote: "Top box of Prime Site labeled 'RTRS'."
+      },
+      prime_chassis: {
+        name: "Simulcast Prime Chassis (SC, COMP SWT, TRAK, AR's)",
+        category: "SIMULCAST PRIME SITE • VOTING & TIMING CORE",
+        status: "VOTING ACTIVE",
+        virt: "Hardware Appliance & Digital Signal Processors",
+        services: "Site Controller (SC), Voting Comparator Switch, TRAK GPS Reference, Audio Routers (AR)",
+        interface: "Multicast Subsite Distribution Links",
+        redundancy: "Fully backed up by GEO PRIME Site",
+        desc: "Heart of the simulcast subsystem. When a mobile transmits, all subsites receive audio packets and relay them to the Voting Comparator (COMP SWT), which selects the highest quality voice packet on a frame-by-frame basis. TRAK GPS reference aligns carrier phase to sub-microsecond precision.",
+        wbNote: "Key schematic drawn: 'SC's COMP SWT / TRAK / AR's' with feed lines to SS1, SS2 up to 32 Subsites."
+      },
+      geo_prime: {
+        name: "Geo Prime Site (Geographic Redundant Prime)",
+        category: "SIMULCAST REDUNDANCY • DISASTER RECOVERY",
+        status: "HOT STANDBY",
+        virt: "Physically Isolated Redundant Prime Installation",
+        services: "Redundant Site Controller, Redundant Audio Router (AR), Geo Router",
+        interface: "Dedicated High-Speed Inter-Prime WAN Link",
+        redundancy: "Autonomous Takeover upon Prime Site severance",
+        desc: "Geographically separated duplicate prime site located in a different jurisdiction/building. Guarantees simulcast continuity even if a catastrophic event destroys the primary Prime Site.",
+        wbNote: "Drawn at top right: 'GEO PRIME: RTR / SC / AR' with inter-connecting link to Prime Site."
+      },
+      subsite1: {
+        name: "SS 1 (Simulcast Subsite 1)",
+        category: "SIMULCAST CELL • RF TRANSMITTER TOWER",
+        status: "TRANSMITTING",
+        virt: "Tower Site Base Radios & Routers",
+        services: "G-Series Base Radios (BR), Site Routers (RTRS)",
+        interface: "Backhaul PtL Link to Prime Site",
+        redundancy: "Redundant Power Generators, Battery Backup",
+        desc: "Simulcast transmitter/receiver tower site. Receives voice from subscriber radios and transmits voted voice packets synchronized with all other subsites on identical frequencies.",
+        wbNote: "Drawn as 'SS 1: RTRS / BR's'."
+      },
+      subsite2: {
+        name: "SS 2 (Simulcast Subsite 2)",
+        category: "SIMULCAST CELL • RF TRANSMITTER TOWER",
+        status: "TRANSMITTING",
+        virt: "Tower Site Base Radios & Routers",
+        services: "G-Series Base Radios (BR), Site Routers (RTRS)",
+        interface: "Backhaul PtL Link to Prime Site",
+        redundancy: "Redundant Power Generators, Battery Backup",
+        desc: "Second simulcast subsite in the simulcast array (system supports up to 32 Subsites as noted on the whiteboard).",
+        wbNote: "Drawn as 'SS 2: RTRS / BR's' with '... 32 SUB SITES' notation."
+      },
+      console_rtr: {
+        name: "Console Site Routers (Remote Console Site)",
+        category: "DISPATCH SUBSYSTEM • WAN INGRESS",
+        status: "ACTIVE",
+        virt: "Dual Edge Routers",
+        services: "IPsec Tunneling, DiffServ QoS Tagging",
+        interface: "Direct WAN to Core Backhaul",
+        redundancy: "Dual Uplinks",
+        desc: "Gateway router at the 911 PSAP / Dispatch facility connecting dispatch operator consoles back to the Core LAN.",
+        wbNote: "Drawn on right whiteboard inside 'REMOTE CONSOLE SITE: RTRS'."
+      },
+      swt1: {
+        name: "SWT 1 (Console Redundant LAN Switch 1)",
+        category: "DISPATCH SUBSYSTEM • CONSOLE ETHERNET A-LAN",
+        status: "ONLINE",
+        virt: "Managed Ethernet Switch with PoE+",
+        services: "Console A-Side Network, QoS Priority",
+        interface: "1000BASE-T Ports to OP 1 / OP 2",
+        redundancy: "Parallel A/B Switch Architecture with SWT 2",
+        desc: "Primary LAN switch routing console audio and signaling packets between Operator positions and dispatch gateways.",
+        wbNote: "Drawn with RJ-45 port layout: 'SWT 1 -> OP1'."
+      },
+      swt2: {
+        name: "SWT 2 (Console Redundant LAN Switch 2)",
+        category: "DISPATCH SUBSYSTEM • CONSOLE ETHERNET B-LAN",
+        status: "ONLINE",
+        virt: "Managed Ethernet Switch with PoE+",
+        services: "Console B-Side Network (Failover)",
+        interface: "1000BASE-T Ports to OP 2 & CCGW",
+        redundancy: "Full A/B Path Redundancy",
+        desc: "Secondary LAN switch providing continuous dual-homed connectivity to dispatch consoles.",
+        wbNote: "Drawn below SWT 1: 'SWT 2 -> OP2, CCGW'."
+      },
+      op1: {
+        name: "OP 1 (Operator Dispatch Console 1)",
+        category: "DISPATCH SUBSYSTEM • MCC 7500 IP DISPATCH",
+        status: "TRANSMIT CAPABLE",
+        virt: "Windows-Based Mission-Critical Dispatch Console",
+        services: "Talkgroup Blue Monitoring, PTT Master Override, Patching",
+        interface: "Dual NIC to SWT 1 & SWT 2",
+        redundancy: "Operator Backup Position",
+        desc: "MCC 7500 Dispatch Console position. Displays real-time Unit ID (RID 133) when subscriber transmits, controls talkgroup patching, and provides instant emergency alerting.",
+        wbNote: "Drawn as 'OP 1' terminal workstation off SWT 1."
+      },
+      op2: {
+        name: "OP 2 (Operator Dispatch Console 2)",
+        category: "DISPATCH SUBSYSTEM • MCC 7500 IP DISPATCH",
+        status: "MONITORING",
+        virt: "Windows-Based Mission-Critical Dispatch Console",
+        services: "Talkgroup Monitoring, Emergency Queue Handling",
+        interface: "Dual NIC to SWT 1 & SWT 2",
+        redundancy: "Operator Position 2",
+        desc: "Second dispatch console station providing dual operator coverage for public safety communications.",
+        wbNote: "Drawn as 'OP 2' terminal workstation off SWT 2."
+      },
+      ccgw: {
+        name: "CCGW (Conventional Channel Gateway)",
+        category: "DISPATCH SUBSYSTEM • CONVENTIONAL RADIO INTERFACE",
+        status: "OPERATIONAL",
+        virt: "IP-to-Analog / 4-Wire E&M Gateway",
+        services: "Tone Remote Control, V-RAD, E&M Signaling, P25 DFSI",
+        interface: "Connected to SWT 2 and Remote Tower Antenna",
+        redundancy: "Hot Swappable Line Cards",
+        desc: "Bridges legacy analog conventional channels, VHF mutual aid, or marine channels directly into the ASTRO 25 IP dispatch console environment.",
+        wbNote: "Drawn on bottom right: 'CCGW' connected to RF antenna tower."
+      },
+      rf_rtr: {
+        name: "RF Site Routers (ASR Site Router)",
+        category: "RF SUBSITE • SATELLITE SITE ROUTER",
+        status: "ACTIVE",
+        virt: "Ruggedized Substation Router",
+        services: "IPsec / MPLS Site Encapsulation",
+        interface: "PtL / Microwave link to Backhaul Cloud",
+        redundancy: "Dual Uplink",
+        desc: "Handles inbound/outbound packets between Base Radios / Site Controllers and the Master Zone Core.",
+        wbNote: "Inside RF SITE box: 'RTRS' over SC's and BR's."
+      },
+      rf_sc_br: {
+        name: "ASR Site Controller & Base Radios (SC & BR)",
+        category: "RF SUBSITE • RF TRANSCEIVER CORE",
+        status: "ACTIVE (SITE 10)",
+        virt: "G-Series Base Radios & Site Controller",
+        services: "Control Channel Broadcasting, FDMA/TDMA Voice Repeater",
+        interface: "Antenna Multicoupler / Duplexer",
+        redundancy: "Redundant Base Radio Backup",
+        desc: "Site Controller (SC) manages local radio channel assignments, while Base Radios (BR's) transmit trunking control channels and digital voice bursts.",
+        wbNote: "Drawn on lower middle-left: 'SC's / BR's' with arrow note: 'CTRL PATH: SC -> ZC'."
+      },
+      subscriber: {
+        name: "Subscriber Radio Unit (RID 133)",
+        category: "SUBSCRIBER EQUIPMENT • APX SERIES PORTABLE",
+        status: "AFFILIATED TO TG BLUE",
+        virt: "P25 Phase 2 TDMA / Phase 1 FDMA Portable",
+        services: "Unit Registration, Talkgroup Affiliation, AES-256 Voice",
+        interface: "800 MHz P25 CAI RF Link",
+        redundancy: "Automatic Failover to Alternate Control Channel",
+        desc: "Field public safety radio with ID 133 affiliated to Talkgroup BLUE on Site 10. Automatically scans control channel frequencies specified in its codeplug.",
+        wbNote: "Drawn at lower left: 'TG BLUE, UNIT 133, REG + AFFIL TG'."
+      }
+    };
+
+    function showDetails(key) {
+      const comp = componentsData[key];
+      if (!comp) return;
+
+      document.getElementById('component-name').innerText = comp.name;
+      document.getElementById('component-category').innerText = comp.category;
+      document.getElementById('component-status').innerText = comp.status;
+      document.getElementById('component-desc').innerText = comp.desc;
+      document.getElementById('spec-virt').innerText = comp.virt;
+      document.getElementById('spec-services').innerText = comp.services;
+      document.getElementById('spec-interface').innerText = comp.interface;
+      document.getElementById('spec-redundancy').innerText = comp.redundancy;
+      document.getElementById('component-whiteboard-note').innerText = comp.wbNote;
+
+      // Animate card brief highlight
+      const card = document.getElementById('inspector-card');
+      card.classList.add('ring-2', 'ring-cyan-500/50');
+      setTimeout(() => card.classList.remove('ring-2', 'ring-cyan-500/50'), 600);
+      
+      logEvent(`Inspected component: ${comp.name.split(' (')[0]}`);
+    }
+
+    // Modal toggler
+    function toggleCodeplugModal() {
+      const modal = document.getElementById('codeplug-modal');
+      modal.classList.toggle('hidden');
+    }
+
+    // Logging helper
+    function logEvent(msg, type = "normal") {
+      const stream = document.getElementById('event-stream');
+      const time = new Date().toTimeString().split(' ')[0];
+      const div = document.createElement('div');
+      
+      if (type === "cyan") div.className = "text-cyan-400 font-bold";
+      else if (type === "emerald") div.className = "text-emerald-400 font-bold";
+      else if (type === "amber") div.className = "text-amber-400 font-bold";
+      else div.className = "text-gray-300";
+
+      div.innerHTML = `<span class="text-gray-500">[${time}]</span> ${msg}`;
+      stream.appendChild(div);
+      stream.scrollTop = stream.scrollHeight;
+    }
+
+    // Simulation Flow Engine
+    let activeTimer = null;
+
+    function resetFlow() {
+      if (activeTimer) clearTimeout(activeTimer);
+      const pathEl = document.getElementById('animated-signal-path');
+      pathEl.setAttribute('d', '');
+      pathEl.classList.add('hidden');
+      pathEl.classList.remove('flow-active');
+
+      document.getElementById('flow-step-badge').innerText = 'FLOW IDLE';
+      document.getElementById('flow-step-badge').className = 'px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-xs border border-gray-700';
+      document.getElementById('flow-step-text').innerText = 'Select a flow simulation above to visualize Astro 25 signaling sequences.';
+      
+      // Reset button styles
+      ['btn-flow-affil', 'btn-flow-call', 'btn-flow-failover'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.classList.remove('bg-cyan-600', 'bg-blue-600', 'bg-amber-600', 'text-white');
+        btn.classList.add('text-gray-300');
+      });
+      document.getElementById('btn-flow-affil').classList.add('bg-cyan-600', 'text-white');
+    }
+
+    function triggerFlow(type) {
+      resetFlow();
+
+      const pathEl = document.getElementById('animated-signal-path');
+      pathEl.classList.remove('hidden');
+
+      if (type === 'affiliation') {
+        runAffiliationSimulation(pathEl);
+      } else if (type === 'voice_call') {
+        runVoiceCallSimulation(pathEl);
+      } else if (type === 'failover') {
+        runFailoverSimulation(pathEl);
+      }
+    }
+
+    function runAffiliationSimulation(pathEl) {
+      const badge = document.getElementById('flow-step-badge');
+      const text = document.getElementById('flow-step-text');
+      
+      badge.className = 'px-2 py-0.5 rounded bg-cyan-900/80 text-cyan-300 font-mono text-xs border border-cyan-700/50';
+      badge.innerText = 'STEP 1/4: REGISTRATION';
+      text.innerText = 'Unit RID 133 locks on Control Channel (Site 10) -> Emits Inbound Signaling Word (ISW).';
+      
+      // RF to SC/BR
+      pathEl.setAttribute('d', 'M 219 605 L 340 595 L 385 620');
+      pathEl.setAttribute('stroke', '#06B6D4');
+      pathEl.classList.add('flow-active');
+      logEvent("Subscriber Unit 133 sent P25 Registration Packet on Site 10 CC.", "cyan");
+
+      activeTimer = setTimeout(() => {
+        badge.innerText = 'STEP 2/4: CTRL PATH TO ZC';
+        text.innerText = 'Site Controller 10 wraps packet into UDP/IP control message -> Relays via Backhaul to Zone Controller.';
+        pathEl.setAttribute('d', 'M 385 580 Q 420 480 480 410 L 475 340 L 390 340 L 320 340 L 267 235 L 120 205');
+        logEvent("ASR Site Controller routed affiliation packet through Transport Backhaul to VMS1 (ZC1).", "cyan");
+
+        activeTimer = setTimeout(() => {
+          badge.innerText = 'STEP 3/4: HLR/VLR VALIDATION';
+          text.innerText = 'Zone Controller 1 checks I-HLR for Unit 133 permissions and G-HLR for TG BLUE access.';
+          pathEl.setAttribute('d', 'M 77 210 L 77 330 L 135 340');
+          logEvent("ZC1 validated Unit 133 in I-HLR. Dynamic VLR entry created: RID 133 @ Site 10 on TG BLUE.", "emerald");
+
+          activeTimer = setTimeout(() => {
+            badge.innerText = 'STEP 4/4: AFFILIATION ACK';
+            text.innerText = 'Outbound Signaling Word (OSW) Affiliation Acknowledged returned to Unit 133.';
+            pathEl.setAttribute('d', 'M 77 210 L 267 235 L 390 340 L 480 410 L 385 580 L 219 605');
+            logEvent("Registration & Affiliation Handshake Complete. Channel Grant Ready.", "emerald");
+          }, 1800);
+        }, 1800);
+      }, 1800);
+    }
+
+    function runVoiceCallSimulation(pathEl) {
+      const badge = document.getElementById('flow-step-badge');
+      const text = document.getElementById('flow-step-text');
+      
+      badge.className = 'px-2 py-0.5 rounded bg-blue-900/80 text-blue-300 font-mono text-xs border border-blue-700/50';
+      badge.innerText = 'PTT VOICE 1/3: FRAME VOTING';
+      text.innerText = 'RID 133 keys PTT on TG BLUE. Audio multicast to Simulcast Subsites SS1–SS32 and Comparator.';
+      
+      pathEl.setAttribute('d', 'M 219 605 L 385 580 L 480 410 Q 700 160 740 120 L 795 160');
+      pathEl.setAttribute('stroke', '#3B82F6');
+      pathEl.classList.add('flow-active');
+      logEvent("PTT pressed: Voice frames arriving at Prime Site Comparator (COMP SWT).", "cyan");
+
+      activeTimer = setTimeout(() => {
+        badge.innerText = 'PTT VOICE 2/3: SIMULCAST BROADCAST';
+        text.innerText = 'Comparator votes cleanest frame. TRAK GPS synchronizes broadcast to Subsites SS1 and SS2.';
+        pathEl.setAttribute('d', 'M 795 195 L 795 220 L 850 310 M 795 220 L 850 435');
+        logEvent("Prime Site voted best frames and distributed synchronized audio to SS1 and SS2.", "emerald");
+
+        activeTimer = setTimeout(() => {
+          badge.innerText = 'PTT VOICE 3/3: DISPATCH CONSOLE AUDIO';
+          text.innerText = 'Audio Router (AR) simultaneously sends IP audio stream across Backhaul to Operator OP1.';
+          pathEl.setAttribute('d', 'M 795 220 Q 610 590 690 640 L 780 655 L 910 655');
+          logEvent("Dispatch Console OP1 received unencrypted speaker audio for TG BLUE with Unit ID 133.", "emerald");
+        }, 1800);
+      }, 1800);
+    }
+
+    function runFailoverSimulation(pathEl) {
+      const badge = document.getElementById('flow-step-badge');
+      const text = document.getElementById('flow-step-text');
+      
+      badge.className = 'px-2 py-0.5 rounded bg-amber-900/80 text-amber-300 font-mono text-xs border border-amber-700/50';
+      badge.innerText = 'FAILOVER 1/2: PRIME TIMEOUT';
+      text.innerText = 'Simulating fiber cut to Primary Prime Site. Geo-Prime RTR senses loss of keep-alive packets.';
+      
+      pathEl.setAttribute('d', 'M 860 100 L 980 105');
+      pathEl.setAttribute('stroke', '#F59E0B');
+      pathEl.classList.add('flow-active');
+      logEvent("ALARM: Primary Prime Site unreachable. Keepalive timeout exceeded.", "amber");
+
+      activeTimer = setTimeout(() => {
+        badge.innerText = 'FAILOVER 2/2: GEO-PRIME ACTIVE';
+        text.innerText = 'Geo-Prime SC & Audio Router take over simulcast distribution to SS1–SS32 without lost audio.';
+        pathEl.setAttribute('d', 'M 1030 185 Q 980 260 955 310 M 1030 185 Q 980 380 955 435');
+        logEvent("GEO-PRIME SITE promoted to ACTIVE MASTER. Zero packet loss on active trunked calls.", "emerald");
+      }, 2000);
+    }
+
+    // Default initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      showDetails('vms1');
+      logEvent("System initialized. Interactive ASTRO 25 Architecture ready.");
+    });
+  </script>
+</body>
+</html>
